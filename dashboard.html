@@ -217,29 +217,87 @@
         import { protectPage } from './js/router.js';
         import { initChat } from './js/chat.js';
         import { showToast } from './js/ui.js';
+        import { getChatStats } from './js/api.js';
         import CONFIG from './js/config.js';
 
         /**
-         * Display placeholder dashboard statistics
-         * (Chat history is not available without Supabase)
+         * Format date for display
          */
-        function displayPlaceholderStats() {
-            // Update stat cards with placeholder
-            document.getElementById('statTotalMessages').textContent = '-';
-            document.getElementById('statMessagesDetail').textContent = 'Historial no disponible';
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            const now = new Date();
+            const diff = now - date;
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
-            document.getElementById('statConversations').textContent = '-';
-            document.getElementById('statConversationsDetail').textContent = 'Usa el chat para conversar';
+            if (days === 0) {
+                return 'Hoy ' + date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            } else if (days === 1) {
+                return 'Ayer';
+            } else if (days < 7) {
+                return date.toLocaleDateString('es-ES', { weekday: 'long' });
+            } else {
+                return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+            }
+        }
 
-            document.getElementById('statHumanMessages').textContent = '-';
+        /**
+         * Load and display dashboard statistics from Google Sheets
+         */
+        async function loadDashboardStats() {
+            const { data, error } = await getChatStats();
+
+            if (error || !data) {
+                // Show placeholder on error
+                document.getElementById('statTotalMessages').textContent = '0';
+                document.getElementById('statMessagesDetail').textContent = 'Usa el chat para comenzar';
+                document.getElementById('statConversations').textContent = '0';
+                document.getElementById('statConversationsDetail').textContent = 'Sesiones de chat';
+                document.getElementById('statHumanMessages').textContent = '0';
+                document.getElementById('statHumanDetail').textContent = 'Tus mensajes';
+                document.getElementById('statAiMessages').textContent = '0';
+                document.getElementById('statAiDetail').textContent = 'Respuestas del asistente';
+                document.getElementById('recentActivity').innerHTML = '<p class="text-muted">Usa el chat para comenzar a conversar con el asistente.</p>';
+                return;
+            }
+
+            const stats = data.stats || {};
+
+            // Update stat cards
+            document.getElementById('statTotalMessages').textContent = stats.totalMessages || 0;
+            document.getElementById('statMessagesDetail').textContent = stats.totalMessages > 0 ? 'Mensajes totales' : 'Usa el chat para comenzar';
+
+            document.getElementById('statConversations').textContent = stats.totalSessions || 0;
+            document.getElementById('statConversationsDetail').textContent = 'Sesiones de chat';
+
+            document.getElementById('statHumanMessages').textContent = stats.humanMessages || 0;
             document.getElementById('statHumanDetail').textContent = 'Tus mensajes';
 
-            document.getElementById('statAiMessages').textContent = '-';
+            document.getElementById('statAiMessages').textContent = stats.aiMessages || 0;
             document.getElementById('statAiDetail').textContent = 'Respuestas del asistente';
 
             // Update recent activity
             const recentDiv = document.getElementById('recentActivity');
-            recentDiv.innerHTML = '<p class="text-muted">El historial de conversaciones no esta disponible. Usa el chat del asistente para comenzar.</p>';
+            if (stats.totalMessages > 0) {
+                recentDiv.innerHTML = `
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--color-gray-100);">
+                            <span>Primera conversacion</span>
+                            <span class="text-muted">${formatDate(stats.firstMessageDate)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--color-gray-100);">
+                            <span>Ultima actividad</span>
+                            <span class="text-muted">${formatDate(stats.lastMessageDate)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                            <span>Promedio por sesion</span>
+                            <span class="text-muted">${stats.totalSessions > 0 ? Math.round(stats.totalMessages / stats.totalSessions) : 0} mensajes</span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                recentDiv.innerHTML = '<p class="text-muted">Usa el chat para comenzar a conversar con el asistente.</p>';
+            }
         }
 
         // Protect the page - redirect to login if not authenticated
@@ -255,8 +313,8 @@
                     document.getElementById('userAvatar').textContent = user.email.charAt(0).toUpperCase();
                 }
 
-                // Display placeholder stats
-                displayPlaceholderStats();
+                // Load real stats from Google Sheets
+                await loadDashboardStats();
 
                 // Initialize chat
                 initChat(user);
