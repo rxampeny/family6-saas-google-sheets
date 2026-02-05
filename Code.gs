@@ -16,7 +16,7 @@
 
 // ============== CONFIGURATION ==============
 const SPREADSHEET_ID = '1BM1AkIUGDWiHfTXHIV0uVgxdqDWZYJIvWr2QRgdmmcI';
-const APP_URL = 'https://your-app.netlify.app';    // Replace with your Netlify URL
+const APP_URL = 'https://tranquil-taiyaki-cf0922.netlify.app';
 
 // Sheet names
 const USERS_SHEET = 'users';
