@@ -299,6 +299,7 @@
     <script type="module">
         import { signOut, getUser } from './js/auth.js';
         import { protectPage } from './js/router.js';
+        import { getChatHistory } from './js/api.js';
         import CONFIG from './js/config.js';
 
         // DOM Elements
@@ -308,17 +309,139 @@
         const conversationsList = document.getElementById('conversationsList');
 
         /**
-         * Shows the empty/unavailable state
+         * Format date for display
          */
-        function showUnavailableState() {
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diff = now - date;
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+            if (days === 0) {
+                return 'Hoy ' + date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            } else if (days === 1) {
+                return 'Ayer ' + date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            } else if (days < 7) {
+                return date.toLocaleDateString('es-ES', { weekday: 'long', hour: '2-digit', minute: '2-digit' });
+            } else {
+                return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+            }
+        }
+
+        /**
+         * Group messages by session
+         */
+        function groupMessagesBySession(messages) {
+            const sessions = {};
+            messages.forEach(msg => {
+                if (!sessions[msg.session_id]) {
+                    sessions[msg.session_id] = {
+                        id: msg.session_id,
+                        messages: [],
+                        firstMessage: null,
+                        lastMessage: null
+                    };
+                }
+                sessions[msg.session_id].messages.push(msg);
+                if (!sessions[msg.session_id].firstMessage || new Date(msg.created_at) < new Date(sessions[msg.session_id].firstMessage.created_at)) {
+                    sessions[msg.session_id].firstMessage = msg;
+                }
+                if (!sessions[msg.session_id].lastMessage || new Date(msg.created_at) > new Date(sessions[msg.session_id].lastMessage.created_at)) {
+                    sessions[msg.session_id].lastMessage = msg;
+                }
+            });
+            return Object.values(sessions).sort((a, b) =>
+                new Date(b.lastMessage.created_at) - new Date(a.lastMessage.created_at)
+            );
+        }
+
+        /**
+         * Render conversations
+         */
+        function renderConversations(sessions) {
+            if (!sessions || sessions.length === 0) {
+                loadingState.style.display = 'none';
+                errorState.style.display = 'none';
+                conversationsList.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            let html = '';
+            sessions.forEach(session => {
+                const firstHumanMsg = session.messages.find(m => m.message_type === 'human');
+                const preview = firstHumanMsg ? firstHumanMsg.content.substring(0, 100) + (firstHumanMsg.content.length > 100 ? '...' : '') : 'Sin vista previa';
+                const humanCount = session.messages.filter(m => m.message_type === 'human').length;
+                const aiCount = session.messages.filter(m => m.message_type === 'ai').length;
+
+                html += `
+                    <div class="conversation-card" data-session-id="${session.id}">
+                        <div class="conversation-header" onclick="this.parentElement.classList.toggle('expanded')">
+                            <div class="conversation-header-left">
+                                <h3 class="conversation-title">Conversacion</h3>
+                                <span class="conversation-date">${formatDate(session.lastMessage.created_at)}</span>
+                            </div>
+                            <button class="expand-btn">
+                                <svg class="expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <p class="conversation-preview">${preview}</p>
+                        <div class="conversation-meta">
+                            <span class="conversation-stat">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                                ${humanCount} mensajes tuyos
+                            </span>
+                            <span class="conversation-stat">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                </svg>
+                                ${aiCount} respuestas
+                            </span>
+                        </div>
+                        <div class="conversation-messages">
+                            ${session.messages.map(msg => `
+                                <div class="message-item ${msg.message_type}">
+                                    <div class="message-label">${msg.message_type === 'human' ? 'Tu' : 'Asistente'}</div>
+                                    ${msg.content}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            conversationsList.innerHTML = html;
             loadingState.style.display = 'none';
             errorState.style.display = 'none';
+            emptyState.style.display = 'none';
+            conversationsList.style.display = 'flex';
+        }
+
+        /**
+         * Load conversations from API
+         */
+        async function loadConversations() {
+            loadingState.style.display = 'block';
+            errorState.style.display = 'none';
+            emptyState.style.display = 'none';
             conversationsList.style.display = 'none';
 
-            // Update empty state message
-            emptyState.querySelector('h3').textContent = 'Historial no disponible';
-            emptyState.querySelector('p').textContent = 'El historial de conversaciones no esta disponible en esta version. Usa el chat del dashboard para conversar con el asistente.';
-            emptyState.style.display = 'block';
+            const { data, error } = await getChatHistory();
+
+            if (error) {
+                loadingState.style.display = 'none';
+                document.getElementById('errorMessage').textContent = error.message || 'Error al cargar conversaciones';
+                errorState.style.display = 'block';
+                return;
+            }
+
+            const sessions = groupMessagesBySession(data?.messages || []);
+            renderConversations(sessions);
         }
 
         protectPage(async (session) => {
@@ -332,8 +455,8 @@
 
             document.querySelector('.dashboard-layout').style.opacity = '1';
 
-            // Show unavailable state
-            showUnavailableState();
+            // Load conversations from Google Sheets
+            await loadConversations();
         });
 
         document.getElementById('logoutBtn').addEventListener('click', async () => {

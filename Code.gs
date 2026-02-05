@@ -21,6 +21,7 @@ const APP_URL = 'https://tranquil-taiyaki-cf0922.netlify.app';
 // Sheet names
 const USERS_SHEET = 'users';
 const SESSIONS_SHEET = 'sessions';
+const CHAT_HISTORY_SHEET = 'chat_history';
 
 // Token settings
 const SESSION_DURATION_DAYS = 7;
@@ -65,6 +66,15 @@ function doPost(e) {
         break;
       case 'getUser':
         result = handleGetUser(data);
+        break;
+      case 'saveChatMessage':
+        result = handleSaveChatMessage(data);
+        break;
+      case 'getChatHistory':
+        result = handleGetChatHistory(data);
+        break;
+      case 'getChatStats':
+        result = handleGetChatStats(data);
         break;
       default:
         result = { error: 'Unknown action' };
@@ -461,6 +471,222 @@ function handleConfirmEmail(token) {
 
   return HtmlService.createHtmlOutput(html)
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+// ============== CHAT HISTORY HANDLERS ==============
+
+/**
+ * Save a chat message
+ */
+function handleSaveChatMessage(data) {
+  const { token, sessionId, messageType, content } = data;
+
+  if (!token) {
+    return { error: 'Token is required' };
+  }
+
+  const session = findSessionByToken(token);
+  if (!session || new Date(session.expires_at) < new Date()) {
+    return { error: 'Invalid or expired session' };
+  }
+
+  const sheet = getSheet(CHAT_HISTORY_SHEET);
+  const now = new Date().toISOString();
+
+  // Generate unique ID
+  const id = now + '_' + Math.random().toString(36).substr(2, 9);
+
+  const messageData = [
+    id,                    // A: id
+    sessionId,             // B: session_id
+    session.user_email,    // C: user_email
+    messageType,           // D: message_type (human/ai)
+    content,               // E: content
+    now                    // F: created_at
+  ];
+
+  sheet.appendRow(messageData);
+
+  return { success: true, id: id };
+}
+
+/**
+ * Get chat history for a user
+ */
+function handleGetChatHistory(data) {
+  const { token } = data;
+
+  if (!token) {
+    return { error: 'Token is required' };
+  }
+
+  const session = findSessionByToken(token);
+  if (!session || new Date(session.expires_at) < new Date()) {
+    return { error: 'Invalid or expired session' };
+  }
+
+  const sheet = getSheet(CHAT_HISTORY_SHEET);
+  const allData = sheet.getDataRange().getValues();
+
+  // Group messages by session_id
+  const sessionsMap = {};
+
+  for (let i = 1; i < allData.length; i++) {
+    const row = allData[i];
+    if (row[2] === session.user_email) { // Filter by user_email
+      const sessionId = row[1];
+
+      if (!sessionsMap[sessionId]) {
+        sessionsMap[sessionId] = {
+          sessionId: sessionId,
+          messages: [],
+          firstMessageTime: row[5]
+        };
+      }
+
+      sessionsMap[sessionId].messages.push({
+        id: row[0],
+        type: row[3],
+        content: row[4],
+        created_at: row[5]
+      });
+    }
+  }
+
+  // Convert to array and calculate stats
+  const conversations = Object.values(sessionsMap).map(conv => {
+    const humanMessages = conv.messages.filter(m => m.type === 'human');
+    const aiMessages = conv.messages.filter(m => m.type === 'ai');
+
+    return {
+      sessionId: conv.sessionId,
+      title: humanMessages[0]?.content?.substring(0, 50) || 'Conversacion',
+      preview: humanMessages[0]?.content?.substring(0, 100) || '',
+      totalMessages: conv.messages.length,
+      humanMessages: humanMessages.length,
+      aiMessages: aiMessages.length,
+      messages: conv.messages,
+      createdAt: conv.firstMessageTime
+    };
+  });
+
+  // Sort by most recent first
+  conversations.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  // Also return flat messages array for easier consumption
+  const messages = [];
+  for (let i = 1; i < allData.length; i++) {
+    const row = allData[i];
+    if (row[2] === session.user_email) {
+      messages.push({
+        id: row[0],
+        session_id: row[1],
+        user_email: row[2],
+        message_type: row[3],
+        content: row[4],
+        created_at: row[5]
+      });
+    }
+  }
+
+  return { conversations: conversations, messages: messages };
+}
+
+/**
+ * Get chat statistics for a user
+ */
+function handleGetChatStats(data) {
+  const { token } = data;
+
+  if (!token) {
+    return { error: 'Token is required' };
+  }
+
+  const session = findSessionByToken(token);
+  if (!session || new Date(session.expires_at) < new Date()) {
+    return { error: 'Invalid or expired session' };
+  }
+
+  const sheet = getSheet(CHAT_HISTORY_SHEET);
+  const allData = sheet.getDataRange().getValues();
+
+  const sessions = new Set();
+  let humanCount = 0;
+  let aiCount = 0;
+  const messagesByDay = {};
+
+  for (let i = 1; i < allData.length; i++) {
+    const row = allData[i];
+    if (row[2] === session.user_email) {
+      sessions.add(row[1]);
+
+      if (row[3] === 'human') humanCount++;
+      else if (row[3] === 'ai') aiCount++;
+
+      // Group by day
+      const date = new Date(row[5]).toISOString().split('T')[0];
+      messagesByDay[date] = (messagesByDay[date] || 0) + 1;
+    }
+  }
+
+  // Get last 7 days
+  const days = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
+  const last7Days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0];
+    last7Days.push({
+      label: days[d.getDay()],
+      count: messagesByDay[dateStr] || 0
+    });
+  }
+
+  const maxCount = Math.max(...last7Days.map(d => d.count), 1);
+  last7Days.forEach(day => {
+    day.percentage = Math.round((day.count / maxCount) * 100);
+  });
+
+  // Recent conversations
+  const recentConversations = [];
+  const sessionsArray = Array.from(sessions).slice(-5);
+  sessionsArray.forEach(sessionId => {
+    const messages = allData.filter(row => row[1] === sessionId && row[2] === session.user_email);
+    recentConversations.push({
+      sessionId: sessionId,
+      messageCount: messages.length
+    });
+  });
+
+  // Get first and last message dates
+  let firstMessageDate = null;
+  let lastMessageDate = null;
+
+  for (let i = 1; i < allData.length; i++) {
+    const row = allData[i];
+    if (row[2] === session.user_email && row[5]) {
+      const date = new Date(row[5]);
+      if (!firstMessageDate || date < new Date(firstMessageDate)) {
+        firstMessageDate = row[5];
+      }
+      if (!lastMessageDate || date > new Date(lastMessageDate)) {
+        lastMessageDate = row[5];
+      }
+    }
+  }
+
+  return {
+    stats: {
+      totalSessions: sessions.size,
+      totalMessages: humanCount + aiCount,
+      humanMessages: humanCount,
+      aiMessages: aiCount,
+      messagesByDay: last7Days,
+      recentConversations: recentConversations.reverse(),
+      firstMessageDate: firstMessageDate,
+      lastMessageDate: lastMessageDate
+    }
+  };
 }
 
 // ============== DATABASE HELPERS ==============

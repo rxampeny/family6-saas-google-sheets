@@ -4,6 +4,7 @@
  */
 
 import CONFIG from './config.js';
+import { saveChatMessage } from './api.js';
 
 // Chat state
 let sessionId = null;
@@ -191,6 +192,11 @@ async function handleSendMessage() {
     // Add user message to UI
     addMessageToUI(message, 'user');
 
+    // Save user message to Google Sheets (don't await, fire and forget)
+    saveChatMessage(getSessionId(), 'human', message).catch(err => {
+        console.error('Failed to save user message:', err);
+    });
+
     // Show typing indicator
     showTypingIndicator();
 
@@ -223,6 +229,11 @@ async function handleSendMessage() {
         }
 
         addMessageToUI(responseText, 'assistant');
+
+        // Save AI response to Google Sheets (don't await, fire and forget)
+        saveChatMessage(getSessionId(), 'ai', responseText).catch(err => {
+            console.error('Failed to save AI message:', err);
+        });
     }
 
     // Re-enable input

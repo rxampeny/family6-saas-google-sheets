@@ -329,44 +329,151 @@
     <script type="module">
         import { signOut, getUser } from './js/auth.js';
         import { protectPage } from './js/router.js';
+        import { getChatStats, getChatHistory } from './js/api.js';
         import CONFIG from './js/config.js';
 
         /**
-         * Display placeholder analytics
-         * (Analytics data is not available without Supabase)
+         * Format date for display
          */
-        function displayPlaceholderAnalytics() {
-            // Update stat cards with placeholder
-            document.getElementById('statConversations').textContent = '-';
-            document.getElementById('statConversationsDetail').textContent = 'Datos no disponibles';
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diff = now - date;
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
-            document.getElementById('statMessages').textContent = '-';
-            document.getElementById('statMessagesDetail').textContent = 'Datos no disponibles';
+            if (days === 0) {
+                return 'Hoy ' + date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            } else if (days === 1) {
+                return 'Ayer';
+            } else if (days < 7) {
+                return date.toLocaleDateString('es-ES', { weekday: 'long' });
+            } else {
+                return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+            }
+        }
 
-            document.getElementById('statHuman').textContent = '-';
-            document.getElementById('statHumanDetail').textContent = 'Datos no disponibles';
-
-            document.getElementById('statAi').textContent = '-';
-            document.getElementById('statAiDetail').textContent = 'Datos no disponibles';
-
-            // Update bar chart
+        /**
+         * Render bar chart
+         */
+        function renderBarChart(humanCount, aiCount) {
             const barChart = document.getElementById('barChart');
-            barChart.innerHTML = '<p class="text-muted" style="width: 100%; text-align: center;">Analiticas no disponibles en esta version</p>';
+            const total = humanCount + aiCount;
+            if (total === 0) {
+                barChart.innerHTML = '<p class="text-muted" style="width: 100%; text-align: center;">No hay datos suficientes para mostrar</p>';
+                return;
+            }
 
-            // Update recent conversations
+            const maxHeight = 150;
+            const humanHeight = Math.round((humanCount / total) * maxHeight) || 5;
+            const aiHeight = Math.round((aiCount / total) * maxHeight) || 5;
+
+            barChart.innerHTML = `
+                <div class="bar-container">
+                    <div class="bar" style="height: ${humanHeight}px;"></div>
+                    <span class="bar-label">Usuario (${humanCount})</span>
+                </div>
+                <div class="bar-container">
+                    <div class="bar" style="height: ${aiHeight}px; background: linear-gradient(180deg, #10b981 0%, #059669 100%);"></div>
+                    <span class="bar-label">IA (${aiCount})</span>
+                </div>
+            `;
+        }
+
+        /**
+         * Load and display analytics
+         */
+        async function loadAnalytics() {
+            // Load stats
+            const { data: statsData, error: statsError } = await getChatStats();
+
+            if (statsError || !statsData) {
+                document.getElementById('statConversations').textContent = '-';
+                document.getElementById('statConversationsDetail').textContent = 'Error al cargar';
+                document.getElementById('statMessages').textContent = '-';
+                document.getElementById('statMessagesDetail').textContent = 'Error al cargar';
+                document.getElementById('statHuman').textContent = '-';
+                document.getElementById('statHumanDetail').textContent = 'Error al cargar';
+                document.getElementById('statAi').textContent = '-';
+                document.getElementById('statAiDetail').textContent = 'Error al cargar';
+                return;
+            }
+
+            const stats = statsData.stats || {};
+
+            // Update stat cards
+            document.getElementById('statConversations').textContent = stats.totalSessions || 0;
+            document.getElementById('statConversationsDetail').textContent = 'Sesiones de chat';
+
+            document.getElementById('statMessages').textContent = stats.totalMessages || 0;
+            document.getElementById('statMessagesDetail').textContent = 'Mensajes totales';
+
+            document.getElementById('statHuman').textContent = stats.humanMessages || 0;
+            document.getElementById('statHumanDetail').textContent = 'Tus mensajes';
+
+            document.getElementById('statAi').textContent = stats.aiMessages || 0;
+            document.getElementById('statAiDetail').textContent = 'Respuestas del asistente';
+
+            // Render bar chart
+            renderBarChart(stats.humanMessages || 0, stats.aiMessages || 0);
+
+            // Load recent conversations
+            const { data: historyData } = await getChatHistory();
+            const messages = historyData?.messages || [];
+
+            // Get recent sessions
+            const sessions = {};
+            messages.forEach(msg => {
+                if (!sessions[msg.session_id]) {
+                    sessions[msg.session_id] = { messages: [], lastMessage: null };
+                }
+                sessions[msg.session_id].messages.push(msg);
+                if (!sessions[msg.session_id].lastMessage || new Date(msg.created_at) > new Date(sessions[msg.session_id].lastMessage.created_at)) {
+                    sessions[msg.session_id].lastMessage = msg;
+                }
+            });
+
+            const recentSessions = Object.entries(sessions)
+                .sort((a, b) => new Date(b[1].lastMessage.created_at) - new Date(a[1].lastMessage.created_at))
+                .slice(0, 5);
+
+            // Render recent conversations
             const recentDiv = document.getElementById('recentConversations');
-            recentDiv.innerHTML = '<p class="text-muted">Las analiticas de conversaciones no estan disponibles</p>';
+            if (recentSessions.length === 0) {
+                recentDiv.innerHTML = '<p class="text-muted">No hay conversaciones recientes</p>';
+            } else {
+                recentDiv.innerHTML = recentSessions.map(([id, session]) => {
+                    const firstHuman = session.messages.find(m => m.message_type === 'human');
+                    const preview = firstHuman ? firstHuman.content.substring(0, 30) + '...' : 'Conversacion';
+                    return `
+                        <div class="recent-item">
+                            <span class="recent-item-title">${preview}</span>
+                            <span class="recent-item-value">${formatDate(session.lastMessage.created_at)}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
 
-            // Update activity summary
+            // Render activity summary
             const summaryDiv = document.getElementById('activitySummary');
+            const avgPerSession = stats.totalSessions > 0 ? Math.round(stats.totalMessages / stats.totalSessions) : 0;
+            const responseRate = stats.humanMessages > 0 ? Math.round((stats.aiMessages / stats.humanMessages) * 100) : 0;
+
             summaryDiv.innerHTML = `
                 <div class="recent-item">
-                    <span class="recent-item-title">Estado</span>
-                    <span class="recent-item-value">No disponible</span>
+                    <span class="recent-item-title">Promedio por sesion</span>
+                    <span class="recent-item-value">${avgPerSession} mensajes</span>
                 </div>
                 <div class="recent-item">
-                    <span class="recent-item-title">Usa el chat</span>
-                    <span class="recent-item-value">Dashboard</span>
+                    <span class="recent-item-title">Tasa de respuesta</span>
+                    <span class="recent-item-value">${responseRate}%</span>
+                </div>
+                <div class="recent-item">
+                    <span class="recent-item-title">Primera conversacion</span>
+                    <span class="recent-item-value">${stats.firstMessageDate ? formatDate(stats.firstMessageDate) : 'N/A'}</span>
+                </div>
+                <div class="recent-item">
+                    <span class="recent-item-title">Ultima actividad</span>
+                    <span class="recent-item-value">${stats.lastMessageDate ? formatDate(stats.lastMessageDate) : 'N/A'}</span>
                 </div>
             `;
         }
@@ -380,8 +487,8 @@
                 document.getElementById('userAvatar').textContent = user.email.charAt(0).toUpperCase();
             }
 
-            // Display placeholder analytics
-            displayPlaceholderAnalytics();
+            // Load real analytics from Google Sheets
+            await loadAnalytics();
 
             document.querySelector('.dashboard-layout').style.opacity = '1';
         });

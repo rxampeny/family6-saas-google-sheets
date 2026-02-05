@@ -219,6 +219,51 @@ export async function getUser() {
     return result;
 }
 
+/**
+ * Save a chat message to history
+ * @param {string} sessionId - Chat session ID
+ * @param {string} messageType - 'human' or 'ai'
+ * @param {string} content - Message content
+ * @returns {Promise<{data: Object, error: Object}>}
+ */
+export async function saveChatMessage(sessionId, messageType, content) {
+    const token = getSessionToken();
+
+    if (!token) {
+        return { data: null, error: { message: 'No session token' } };
+    }
+
+    return apiRequest('saveChatMessage', { token, sessionId, messageType, content });
+}
+
+/**
+ * Get chat history for current user
+ * @returns {Promise<{data: Object, error: Object}>}
+ */
+export async function getChatHistory() {
+    const token = getSessionToken();
+
+    if (!token) {
+        return { data: null, error: { message: 'No session token' } };
+    }
+
+    return apiRequest('getChatHistory', { token });
+}
+
+/**
+ * Get chat statistics for current user
+ * @returns {Promise<{data: Object, error: Object}>}
+ */
+export async function getChatStats() {
+    const token = getSessionToken();
+
+    if (!token) {
+        return { data: null, error: { message: 'No session token' } };
+    }
+
+    return apiRequest('getChatStats', { token });
+}
+
 export default {
     apiRequest,
     saveSession,
@@ -233,5 +278,8 @@ export default {
     resetPasswordWithToken,
     updatePassword,
     updateProfile,
-    getUser
+    getUser,
+    saveChatMessage,
+    getChatHistory,
+    getChatStats
 };
