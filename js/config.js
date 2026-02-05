@@ -8,7 +8,7 @@ const CONFIG = {
     APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbyyosGL8pRK-Mz8vxY5ovcEnutOj4yUELLScQopVME9kbP7DeUUr6Z2W3ezCpf3MMf7OQ/exec',
 
     // n8n Webhook Configuration
-    N8N_WEBHOOK_URL: 'https://71ef-113-203-165-102.ngrok-free.app/webhook/dda36856-64ca-41d6-81b9-d335e8e807a9/chat',
+    N8N_WEBHOOK_URL: 'https://n8n-xwpt.onrender.com/webhook/dda36856-64ca-41d6-81b9-d335e8e807a9/chat',
 
     // App Configuration
     APP_NAME: 'Family6 SaaS',
