@@ -417,29 +417,50 @@ function handleGetUser(data) {
 function handleConfirmEmail(token) {
   const user = findUserByVerifyToken(token);
 
+  let redirectUrl;
+  let message;
+
   if (!user) {
-    // Redirect to confirm page with error
-    return HtmlService.createHtmlOutput(
-      `<script>window.location.href = '${APP_URL}/confirm.html?error=invalid_token';</script>`
-    );
+    redirectUrl = `${APP_URL}/confirm.html?error=invalid_token`;
+    message = 'Token invalido o expirado.';
+  } else if (user.verified) {
+    redirectUrl = `${APP_URL}/confirm.html?error=already_verified`;
+    message = 'Esta cuenta ya fue verificada.';
+  } else {
+    // Mark as verified
+    updateUserField(user.email, 'verified', true);
+    updateUserField(user.email, 'verify_token', '');
+    updateUserField(user.email, 'updated_at', new Date().toISOString());
+
+    redirectUrl = `${APP_URL}/confirm.html?success=true`;
+    message = 'Cuenta verificada exitosamente!';
   }
 
-  if (user.verified) {
-    // Already verified
-    return HtmlService.createHtmlOutput(
-      `<script>window.location.href = '${APP_URL}/confirm.html?error=already_verified';</script>`
-    );
-  }
+  // Use meta refresh and provide a clickable link as fallback
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="refresh" content="0;url=${redirectUrl}">
+  <title>Redirigiendo...</title>
+  <style>
+    body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f5f5f5; }
+    .container { text-align: center; padding: 40px; background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    a { color: #6366F1; text-decoration: none; font-weight: bold; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>${message}</h2>
+    <p>Redirigiendo...</p>
+    <p>Si no eres redirigido automaticamente, <a href="${redirectUrl}">haz clic aqui</a>.</p>
+  </div>
+</body>
+</html>`;
 
-  // Mark as verified
-  updateUserField(user.email, 'verified', true);
-  updateUserField(user.email, 'verify_token', '');
-  updateUserField(user.email, 'updated_at', new Date().toISOString());
-
-  // Redirect to confirm page with success
-  return HtmlService.createHtmlOutput(
-    `<script>window.location.href = '${APP_URL}/confirm.html?success=true';</script>`
-  );
+  return HtmlService.createHtmlOutput(html)
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 // ============== DATABASE HELPERS ==============
