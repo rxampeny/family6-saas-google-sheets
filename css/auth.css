@@ -1,0 +1,305 @@
+/**
+ * Authentication Pages Styles
+ */
+
+/* Auth Layout */
+.auth-layout {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-8) var(--spacing-4);
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f0fdf4 100%);
+}
+
+/* Auth Card */
+.auth-card {
+    width: 100%;
+    max-width: 440px;
+    background-color: var(--color-white);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-xl);
+    overflow: hidden;
+}
+
+.auth-header {
+    padding: var(--spacing-8) var(--spacing-8) var(--spacing-6);
+    text-align: center;
+}
+
+.auth-logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    border-radius: var(--radius-xl);
+    margin-bottom: var(--spacing-6);
+}
+
+.auth-logo svg {
+    width: 32px;
+    height: 32px;
+    color: var(--color-white);
+}
+
+.auth-title {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    margin-bottom: var(--spacing-2);
+}
+
+.auth-subtitle {
+    color: var(--color-gray-500);
+    font-size: var(--font-size-base);
+    margin-bottom: 0;
+}
+
+.auth-body {
+    padding: 0 var(--spacing-8) var(--spacing-8);
+}
+
+.auth-footer {
+    padding: var(--spacing-6) var(--spacing-8);
+    background-color: var(--color-gray-50);
+    text-align: center;
+    border-top: 1px solid var(--color-gray-200);
+}
+
+.auth-footer p {
+    margin-bottom: 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-gray-600);
+}
+
+/* Auth Form */
+.auth-form .form-group:last-of-type {
+    margin-bottom: var(--spacing-6);
+}
+
+.auth-form .btn {
+    margin-top: var(--spacing-2);
+}
+
+/* Password Input with Toggle */
+.password-input-wrapper {
+    position: relative;
+}
+
+.password-input-wrapper .form-input {
+    padding-right: var(--spacing-12);
+}
+
+.password-toggle {
+    position: absolute;
+    right: var(--spacing-4);
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: var(--color-gray-400);
+    transition: color var(--transition-fast);
+}
+
+.password-toggle:hover {
+    color: var(--color-gray-600);
+}
+
+.password-toggle svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Auth Links */
+.auth-links {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-6);
+    font-size: var(--font-size-sm);
+}
+
+.auth-link {
+    color: var(--color-primary);
+    font-weight: 500;
+}
+
+.auth-link:hover {
+    color: var(--color-primary-dark);
+    text-decoration: underline;
+}
+
+/* Divider */
+.auth-divider {
+    display: flex;
+    align-items: center;
+    margin: var(--spacing-6) 0;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background-color: var(--color-gray-200);
+}
+
+.auth-divider span {
+    padding: 0 var(--spacing-4);
+    color: var(--color-gray-500);
+    font-size: var(--font-size-sm);
+}
+
+/* Social Login Buttons */
+.social-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3);
+}
+
+.btn-social {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-3);
+    padding: var(--spacing-3) var(--spacing-6);
+    background-color: var(--color-white);
+    color: var(--color-gray-700);
+    border: 1px solid var(--color-gray-300);
+    border-radius: var(--radius-lg);
+    font-weight: 500;
+    transition: all var(--transition-fast);
+}
+
+.btn-social:hover {
+    background-color: var(--color-gray-50);
+    border-color: var(--color-gray-400);
+}
+
+.btn-social svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Success State */
+.auth-success {
+    text-align: center;
+    padding: var(--spacing-8);
+}
+
+.auth-success-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto var(--spacing-6);
+    background-color: var(--color-success-light);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.auth-success-icon svg {
+    width: 40px;
+    height: 40px;
+    color: var(--color-success);
+}
+
+.auth-success h2 {
+    margin-bottom: var(--spacing-4);
+}
+
+.auth-success p {
+    color: var(--color-gray-600);
+    margin-bottom: var(--spacing-6);
+}
+
+/* Loading State */
+.auth-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-12);
+    text-align: center;
+}
+
+.auth-loading .spinner {
+    width: 48px;
+    height: 48px;
+    border-width: 4px;
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-4);
+}
+
+.auth-loading p {
+    color: var(--color-gray-600);
+    margin-bottom: 0;
+}
+
+/* Terms Checkbox */
+.terms-checkbox {
+    margin-bottom: var(--spacing-6);
+}
+
+.terms-checkbox .checkbox-label {
+    line-height: 1.5;
+}
+
+.terms-checkbox a {
+    font-weight: 500;
+}
+
+/* Back to Home */
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    position: absolute;
+    top: var(--spacing-6);
+    left: var(--spacing-6);
+    color: var(--color-gray-600);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+}
+
+.back-link:hover {
+    color: var(--color-gray-900);
+}
+
+.back-link svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .auth-layout {
+        padding: var(--spacing-4);
+        align-items: flex-start;
+        padding-top: var(--spacing-12);
+    }
+
+    .auth-card {
+        border-radius: var(--radius-xl);
+    }
+
+    .auth-header {
+        padding: var(--spacing-6) var(--spacing-5) var(--spacing-4);
+    }
+
+    .auth-body {
+        padding: 0 var(--spacing-5) var(--spacing-6);
+    }
+
+    .auth-footer {
+        padding: var(--spacing-5);
+    }
+
+    .auth-links {
+        flex-direction: column;
+        gap: var(--spacing-2);
+    }
+}

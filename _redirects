@@ -1,0 +1,8 @@
+# SPA-style redirects for clean URLs
+# All routes serve from same directory
+
+# Redirect www to non-www (optional)
+# https://www.example.com/* https://example.com/:splat 301
+
+# Handle 404s by serving index
+/*    /index.html   200

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmar Email - Family6 SaaS</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+    <div class="auth-layout">
+        <div class="auth-card">
+            <!-- Loading State -->
+            <div id="loadingSection" class="auth-loading">
+                <span class="spinner"></span>
+                <p>Confirmando tu cuenta...</p>
+            </div>
+
+            <!-- Success Message -->
+            <div id="successSection" class="hidden">
+                <div class="auth-success">
+                    <div class="auth-success-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                    </div>
+                    <h2>Cuenta confirmada</h2>
+                    <p>Tu cuenta ha sido verificada exitosamente. Ya puedes iniciar sesion.</p>
+                    <a href="login.html" class="btn btn-primary">Iniciar sesion</a>
+                </div>
+            </div>
+
+            <!-- Error Message -->
+            <div id="errorSection" class="hidden">
+                <div class="auth-success">
+                    <div class="auth-success-icon" style="background-color: var(--color-error-light);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-error);">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="15" y1="9" x2="9" y2="15"/>
+                            <line x1="9" y1="9" x2="15" y2="15"/>
+                        </svg>
+                    </div>
+                    <h2>Enlace invalido</h2>
+                    <p id="errorMessage">El enlace de confirmacion ha expirado o es invalido. Por favor solicita un nuevo enlace.</p>
+                    <a href="register.html" class="btn btn-primary">Volver a registrarse</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { handleAuthCallback } from './js/auth.js';
+        import CONFIG from './js/config.js';
+
+        async function init() {
+            // Check URL params for confirmation result
+            // Apps Script redirects here with ?success=true or ?error=invalid_token
+            const { data, error, type } = await handleAuthCallback();
+
+            if (error) {
+                document.getElementById('loadingSection').classList.add('hidden');
+                document.getElementById('errorSection').classList.remove('hidden');
+                document.getElementById('errorMessage').textContent = error.message || 'El enlace de confirmacion ha expirado o es invalido.';
+                return;
+            }
+
+            if (data && data.confirmed) {
+                // Success - show success message
+                document.getElementById('loadingSection').classList.add('hidden');
+                document.getElementById('successSection').classList.remove('hidden');
+
+                // Auto redirect to login after 3 seconds
+                setTimeout(() => {
+                    window.location.href = CONFIG.ROUTES.LOGIN;
+                }, 3000);
+            } else {
+                // No params - show error (user accessed page directly)
+                document.getElementById('loadingSection').classList.add('hidden');
+                document.getElementById('errorSection').classList.remove('hidden');
+                document.getElementById('errorMessage').textContent = 'Accede a esta pagina desde el enlace enviado a tu correo.';
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

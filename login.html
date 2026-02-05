@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesion - Family6 SaaS</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+    <div class="auth-layout">
+        <a href="index.html" class="back-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Volver al inicio
+        </a>
+
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="auth-logo">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                </div>
+                <h1 class="auth-title">Bienvenido de nuevo</h1>
+                <p class="auth-subtitle">Ingresa tus credenciales para continuar</p>
+            </div>
+
+            <div class="auth-body">
+                <!-- Alert Container -->
+                <div id="alertContainer"></div>
+
+                <form id="loginForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="email" class="form-label">Correo electronico</label>
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            class="form-input"
+                            placeholder="tu@email.com"
+                            required
+                            autocomplete="email"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password" class="form-label">Contrasena</label>
+                        <div class="password-input-wrapper">
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                class="form-input"
+                                placeholder="Tu contrasena"
+                                required
+                                autocomplete="current-password"
+                            >
+                            <button type="button" class="password-toggle" id="togglePassword">
+                                <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                                <svg class="eye-closed hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                                    <line x1="1" y1="1" x2="23" y2="23"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="auth-links">
+                        <a href="reset-password.html" class="auth-link">Olvidaste tu contrasena?</a>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-full" id="submitBtn">
+                        <span class="btn-text">Iniciar sesion</span>
+                        <span class="spinner hidden"></span>
+                    </button>
+                </form>
+            </div>
+
+            <div class="auth-footer">
+                <p>No tienes cuenta? <a href="register.html" class="auth-link">Registrate aqui</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { signIn } from './js/auth.js';
+        import { requireGuest } from './js/router.js';
+        import { showAlert, setLoading } from './js/ui.js';
+        import CONFIG from './js/config.js';
+
+        // Check if user is already logged in
+        requireGuest(() => {
+            // User is guest, show the form
+            document.querySelector('.auth-card').style.opacity = '1';
+        });
+
+        // Toggle password visibility
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+
+        togglePassword.addEventListener('click', () => {
+            const type = passwordInput.type === 'password' ? 'text' : 'password';
+            passwordInput.type = type;
+            togglePassword.querySelector('.eye-open').classList.toggle('hidden');
+            togglePassword.querySelector('.eye-closed').classList.toggle('hidden');
+        });
+
+        // Handle form submission
+        const form = document.getElementById('loginForm');
+        const submitBtn = document.getElementById('submitBtn');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            setLoading(submitBtn, true);
+
+            const { data, error } = await signIn(email, password);
+
+            setLoading(submitBtn, false);
+
+            if (error) {
+                let message = 'Error al iniciar sesion. Verifica tus credenciales.';
+                if (error.message.includes('Invalid login credentials')) {
+                    message = 'Credenciales invalidas. Verifica tu email y contrasena.';
+                } else if (error.message.includes('Email not confirmed')) {
+                    message = 'Debes confirmar tu email antes de iniciar sesion.';
+                }
+                showAlert('alertContainer', message, 'error');
+                return;
+            }
+
+            // Success - redirect to dashboard
+            showAlert('alertContainer', 'Inicio de sesion exitoso! Redirigiendo...', 'success');
+            setTimeout(() => {
+                window.location.href = CONFIG.ROUTES.DASHBOARD;
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

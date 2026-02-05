@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analiticas - Family6 SaaS</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+
+    <style>
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-6);
+            margin-bottom: var(--spacing-8);
+        }
+        .stat-card {
+            background: var(--color-white);
+            border-radius: var(--radius-xl);
+            padding: var(--spacing-6);
+            border: 1px solid var(--color-gray-200);
+        }
+        .stat-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-4);
+        }
+        .stat-card-title {
+            font-size: var(--font-size-sm);
+            color: var(--color-gray-500);
+            font-weight: 500;
+        }
+        .stat-card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .stat-card-icon svg {
+            width: 20px;
+            height: 20px;
+        }
+        .stat-card-icon.blue { background: #dbeafe; color: #2563eb; }
+        .stat-card-icon.green { background: #dcfce7; color: #16a34a; }
+        .stat-card-icon.purple { background: #f3e8ff; color: #9333ea; }
+        .stat-card-icon.orange { background: #ffedd5; color: #ea580c; }
+        .stat-value {
+            font-size: var(--font-size-3xl);
+            font-weight: 700;
+            color: var(--color-gray-900);
+        }
+        .stat-change {
+            font-size: var(--font-size-sm);
+            margin-top: var(--spacing-2);
+        }
+        .stat-change.positive { color: var(--color-success); }
+        .stat-change.negative { color: var(--color-error); }
+
+        .chart-section {
+            background: var(--color-white);
+            border-radius: var(--radius-xl);
+            padding: var(--spacing-6);
+            border: 1px solid var(--color-gray-200);
+            margin-bottom: var(--spacing-6);
+        }
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-6);
+        }
+        .chart-title {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+        }
+        .chart-placeholder {
+            height: 300px;
+            background: linear-gradient(135deg, var(--color-gray-50) 0%, var(--color-gray-100) 100%);
+            border-radius: var(--radius-lg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-gray-400);
+        }
+        .chart-placeholder svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: var(--spacing-3);
+        }
+
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            height: 200px;
+            padding: var(--spacing-4);
+        }
+        .bar-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            max-width: 60px;
+        }
+        .bar {
+            width: 40px;
+            background: linear-gradient(180deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+            transition: height 0.5s ease;
+        }
+        .bar-label {
+            margin-top: var(--spacing-2);
+            font-size: var(--font-size-xs);
+            color: var(--color-gray-500);
+        }
+
+        .recent-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-6);
+        }
+        @media (max-width: 1024px) {
+            .recent-section {
+                grid-template-columns: 1fr;
+            }
+        }
+        .recent-card {
+            background: var(--color-white);
+            border-radius: var(--radius-xl);
+            padding: var(--spacing-6);
+            border: 1px solid var(--color-gray-200);
+        }
+        .recent-card h3 {
+            margin-bottom: var(--spacing-4);
+        }
+        .recent-list {
+            display: flex;
+            flex-direction: column;
+        }
+        .recent-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-3) 0;
+            border-bottom: 1px solid var(--color-gray-100);
+        }
+        .recent-item:last-child {
+            border-bottom: none;
+        }
+        .recent-item-title {
+            font-weight: 500;
+            color: var(--color-gray-700);
+        }
+        .recent-item-value {
+            color: var(--color-gray-500);
+            font-size: var(--font-size-sm);
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-layout">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="dashboard-logo">
+                <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
+                    <rect width="40" height="40" rx="10" fill="url(#gradient2)"/>
+                    <path d="M12 20L18 26L28 14" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    <defs>
+                        <linearGradient id="gradient2" x1="0" y1="0" x2="40" y2="40">
+                            <stop stop-color="#6366F1"/>
+                            <stop offset="1" stop-color="#4F46E5"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                Family6
+            </div>
+            <div class="dashboard-user">
+                <span class="user-email" id="userEmail">usuario@email.com</span>
+                <div class="user-avatar" id="userAvatar">U</div>
+                <button class="btn btn-secondary btn-sm" id="logoutBtn">Cerrar sesion</button>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <div class="dashboard-content">
+            <!-- Sidebar -->
+            <aside class="dashboard-sidebar">
+                <nav class="sidebar-nav">
+                    <div class="sidebar-section">
+                        <span class="sidebar-section-title">Menu</span>
+                        <a href="dashboard.html" class="sidebar-link">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                <polyline points="9 22 9 12 15 12 15 22"/>
+                            </svg>
+                            Dashboard
+                        </a>
+                        <a href="conversaciones.html" class="sidebar-link">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                            Conversaciones
+                        </a>
+                        <a href="analiticas.html" class="sidebar-link active">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="20" x2="12" y2="10"/>
+                                <line x1="18" y1="20" x2="18" y2="4"/>
+                                <line x1="6" y1="20" x2="6" y2="16"/>
+                            </svg>
+                            Analiticas
+                        </a>
+                        <a href="configuracion.html" class="sidebar-link">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                            </svg>
+                            Configuracion
+                        </a>
+                    </div>
+                </nav>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="dashboard-main">
+                <h1>Analiticas</h1>
+
+                <!-- Stats Grid -->
+                <div class="analytics-grid">
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <span class="stat-card-title">Total Conversaciones</span>
+                            <div class="stat-card-icon blue">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="statConversations">-</div>
+                        <div class="stat-change" id="statConversationsDetail">Cargando...</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <span class="stat-card-title">Total Mensajes</span>
+                            <div class="stat-card-icon green">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="22" y1="2" x2="11" y2="13"/>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="statMessages">-</div>
+                        <div class="stat-change" id="statMessagesDetail">Cargando...</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <span class="stat-card-title">Mensajes Usuario</span>
+                            <div class="stat-card-icon purple">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="statHuman">-</div>
+                        <div class="stat-change" id="statHumanDetail">Cargando...</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <span class="stat-card-title">Respuestas IA</span>
+                            <div class="stat-card-icon orange">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                    <line x1="9" y1="9" x2="15" y2="9"/>
+                                    <line x1="9" y1="15" x2="15" y2="15"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="statAi">-</div>
+                        <div class="stat-change" id="statAiDetail">Cargando...</div>
+                    </div>
+                </div>
+
+                <!-- Chart Section -->
+                <div class="chart-section">
+                    <div class="chart-header">
+                        <h3 class="chart-title">Distribucion de mensajes</h3>
+                        <span class="text-muted" style="font-size: var(--font-size-sm);">Basado en actividad reciente</span>
+                    </div>
+                    <div class="bar-chart" id="barChart">
+                        <!-- Bars will be rendered dynamically -->
+                        <p class="text-muted" style="width: 100%; text-align: center;">Cargando grafico...</p>
+                    </div>
+                </div>
+
+                <!-- Recent Section -->
+                <div class="recent-section">
+                    <div class="recent-card">
+                        <h3>Conversaciones recientes</h3>
+                        <div class="recent-list" id="recentConversations">
+                            <p class="text-muted">Cargando...</p>
+                        </div>
+                    </div>
+
+                    <div class="recent-card">
+                        <h3>Resumen de actividad</h3>
+                        <div class="recent-list" id="activitySummary">
+                            <p class="text-muted">Cargando...</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script type="module">
+        import { signOut, getUser } from './js/auth.js';
+        import { protectPage } from './js/router.js';
+        import CONFIG from './js/config.js';
+
+        /**
+         * Display placeholder analytics
+         * (Analytics data is not available without Supabase)
+         */
+        function displayPlaceholderAnalytics() {
+            // Update stat cards with placeholder
+            document.getElementById('statConversations').textContent = '-';
+            document.getElementById('statConversationsDetail').textContent = 'Datos no disponibles';
+
+            document.getElementById('statMessages').textContent = '-';
+            document.getElementById('statMessagesDetail').textContent = 'Datos no disponibles';
+
+            document.getElementById('statHuman').textContent = '-';
+            document.getElementById('statHumanDetail').textContent = 'Datos no disponibles';
+
+            document.getElementById('statAi').textContent = '-';
+            document.getElementById('statAiDetail').textContent = 'Datos no disponibles';
+
+            // Update bar chart
+            const barChart = document.getElementById('barChart');
+            barChart.innerHTML = '<p class="text-muted" style="width: 100%; text-align: center;">Analiticas no disponibles en esta version</p>';
+
+            // Update recent conversations
+            const recentDiv = document.getElementById('recentConversations');
+            recentDiv.innerHTML = '<p class="text-muted">Las analiticas de conversaciones no estan disponibles</p>';
+
+            // Update activity summary
+            const summaryDiv = document.getElementById('activitySummary');
+            summaryDiv.innerHTML = `
+                <div class="recent-item">
+                    <span class="recent-item-title">Estado</span>
+                    <span class="recent-item-value">No disponible</span>
+                </div>
+                <div class="recent-item">
+                    <span class="recent-item-title">Usa el chat</span>
+                    <span class="recent-item-value">Dashboard</span>
+                </div>
+            `;
+        }
+
+        protectPage(async (session) => {
+            const { data } = await getUser();
+            const user = data?.user;
+
+            if (user) {
+                document.getElementById('userEmail').textContent = user.email;
+                document.getElementById('userAvatar').textContent = user.email.charAt(0).toUpperCase();
+            }
+
+            // Display placeholder analytics
+            displayPlaceholderAnalytics();
+
+            document.querySelector('.dashboard-layout').style.opacity = '1';
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await signOut();
+            window.location.href = CONFIG.ROUTES.LOGIN;
+        });
+    </script>
+</body>
+</html>
